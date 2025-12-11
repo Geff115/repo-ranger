@@ -32,7 +32,11 @@ services:
       - kestra-data:/app/storage
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/kestra-wd:/tmp/kestra-wd
+
     environment:
+      KESTRA_BASIC_AUTH_USER: ${KESTRA_BASIC_AUTH_USER}
+      KESTRA_BASIC_AUTH_PASSWORD: ${KESTRA_BASIC_AUTH_PASSWORD}
+
       KESTRA_CONFIGURATION: |
         datasources:
           postgres:
@@ -43,8 +47,8 @@ services:
         kestra:
           server:
             basic-auth:
-              username: gabrielnoah129@gmail.com # it must be a valid email address
-              password: Admin1234 # it must be at least 8 characters long with uppercase letter and a number
+              username: ${KESTRA_BASIC_AUTH_USER}
+              password: ${KESTRA_BASIC_AUTH_PASSWORD}
           repository:
             type: postgres
           storage:
