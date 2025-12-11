@@ -44,7 +44,7 @@ The report is automatically posted as a GitHub issue with `report` and `ai-gener
 ## 🏗️ Architecture
 
 RepoRanger uses a **multi-workflow orchestration** pattern:
-```
+```plaintext
 ┌─────────────────────────────────────────────────────────┐
 │                    GitHub Repository                     │
 └───────────────┬─────────────────────────┬───────────────┘
@@ -113,7 +113,7 @@ RepoRanger uses a **multi-workflow orchestration** pattern:
 ```
 
 4. **Access Kestra UI**
-   - Open http://localhost:8080
+   - Open [http://localhost:8080](http://localhost:8080)
    - Login with credentials from docker-compose.yml
 
 5. **Import flows**
@@ -277,7 +277,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📞 Contact
 
-**Project Link:** https://github.com/Geff115/repo-ranger
+**Project Link:** [https://github.com/Geff115/repo-ranger](https://github.com/Geff115/repo-ranger)
 
 **Demo Video:** [Coming soon]
 
