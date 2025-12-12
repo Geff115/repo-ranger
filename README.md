@@ -1,72 +1,96 @@
 # 🤖 RepoRanger - AI-Powered Repository Maintenance Agent
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Powered by Kestra](https://img.shields.io/badge/Orchestration-Kestra-blue)](https://kestra.io)
-[![AI: Groq](https://img.shields.io/badge/AI-Groq-orange)](https://groq.com)
+<div align="center">
 
-> An intelligent AI agent that automatically triages GitHub issues, provides contextual analysis, and generates strategic insights for repository maintainers.
+![RepoRanger Dashboard](images/dashboard.png)
 
-## 🎯 Problem Statement
+[![Live Demo](https://img.shields.io/badge/Live-Demo-blue?style=for-the-badge)](https://repo-ranger-8k3c.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Powered by Kestra](https://img.shields.io/badge/Orchestration-Kestra-blue?style=for-the-badge)](https://kestra.io)
+[![AI: Groq](https://img.shields.io/badge/AI-Groq-orange?style=for-the-badge)](https://groq.com)
 
-Open-source maintainers are overwhelmed with:
-- Hundreds of issues requiring manual triage
-- Lack of context for bug reports
-- No systematic way to identify patterns
-- Time-consuming repetitive analysis
+**An intelligent AI agent that automatically triages GitHub issues, provides contextual analysis, and generates strategic insights for repository maintainers.**
 
-**RepoRanger solves this** by automating issue analysis and providing intelligent insights.
+[View Live Dashboard](https://repo-ranger-8k3c.vercel.app/) • [Watch Demo](https://youtu.be/O4um-B1d66A) • [Read Docs](#documentation)
+
+</div>
 
 ---
 
-## ✨ Features
+## 🎯 The Problem
+
+Open-source maintainers are overwhelmed:
+- 📊 **15-30 minutes** spent manually triaging each issue
+- 🔍 **Lack of context** for bug reports and feature requests
+- 📈 **No systematic way** to identify patterns across issues
+- ⏰ **Time-consuming** repetitive analysis work
+
+**For a repository with 100 issues per week, that's 25-50 hours of manual work!**
+
+---
+
+## ✨ The Solution
+
+RepoRanger automates the entire issue triage workflow using AI-powered intelligence:
 
 ### 🔍 Real-Time Issue Triage
-When a new issue is created, RepoRanger automatically:
-- **Classifies** the issue type (bug/feature/documentation/question)
-- **Assigns priority** (high/medium/low) based on content analysis
-- **Adds labels** to GitHub for easy filtering
-- **Posts AI analysis** as a comment with:
+When a new issue is created, RepoRanger **instantly**:
+- ✅ **Classifies** the issue type (bug/feature/documentation/question)
+- ✅ **Assigns priority** (high/medium/low) based on content analysis
+- ✅ **Adds labels** automatically to GitHub
+- ✅ **Posts AI analysis** as a comment with:
   - Issue summary
   - Potentially affected files
   - Recommended next steps
 
+![GitHub Comment Example](images/github-comment.png)
+
 ### 📊 Weekly Intelligence Reports
 Every Monday, RepoRanger generates a comprehensive report:
-- **Trend Analysis**: Most common issue types
-- **Critical Issues**: What needs immediate attention
-- **Strategic Decisions**: Prioritization recommendations
-- **Actionable Insights**: Specific improvements to make
+- 📈 **Trend Analysis**: Most common issue types
+- 🚨 **Critical Issues**: What needs immediate attention
+- 🎯 **Strategic Decisions**: Prioritization recommendations
+- 💡 **Actionable Insights**: Specific improvements to make
 
-The report is automatically posted as a GitHub issue with `report` and `ai-generated` labels.
+![Weekly Report Example](images/weekly-report.png)
+
+### 📈 Real-Time Analytics Dashboard
+Beautiful Vercel-hosted dashboard showing:
+- 📊 Category distribution charts
+- 🎯 Priority breakdown
+- ⏱️ Recent activity feed
+- 📋 Intelligence report summaries
+
+![Dashboard Analytics](images/dashboard.png)
 
 ---
 
 ## 🏗️ Architecture
 
-RepoRanger uses a **multi-workflow orchestration** pattern:
+RepoRanger uses a **multi-workflow orchestration** pattern with two main flows:
 ```plaintext
 ┌─────────────────────────────────────────────────────────┐
-│                    GitHub Repository                     │
-└───────────────┬─────────────────────────┬───────────────┘
-                │                         │
-        Webhook │ (Issue Event)   Cron   │ (Weekly)
-                ▼                         ▼
-┌───────────────────────────┐ ┌─────────────────────────┐
-│  Flow 1: Issue Listener   │ │ Flow 2: Weekly Reporter │
-│  ─────────────────────    │ │ ─────────────────────   │
-│  1. Receive webhook       │ │ 1. Fetch issues (7 days)│
-│  2. Classify with AI      │ │ 2. Analyze patterns     │
-│  3. Post comment          │ │ 3. Make decisions       │
-│  4. Add labels            │ │ 4. Generate report      │
-└───────────────────────────┘ └─────────────────────────┘
-                │                         │
-                └──────────┬──────────────┘
-                           ▼
-                  ┌─────────────────┐
-                  │  GitHub Issues  │
-                  │  + Comments     │
-                  │  + Labels       │
-                  └─────────────────┘
+│                   GitHub Repository                      │
+└──────────────┬───────────────────────┬──────────────────┘
+               │                       │
+       Webhook │ (Issue Event)  Cron  │ (Weekly)
+               ▼                       ▼
+┌──────────────────────────┐ ┌────────────────────────────┐
+│ Flow 1: Issue Listener   │ │ Flow 2: Weekly Reporter    │
+│ ─────────────────────    │ │ ─────────────────────      │
+│ 1. Receive webhook       │ │ 1. Fetch issues (7 days)   │
+│ 2. Classify with AI      │ │ 2. Analyze patterns        │
+│ 3. Post comment          │ │ 3. Make decisions          │
+│ 4. Add labels            │ │ 4. Generate report         │
+└──────────────────────────┘ └────────────────────────────┘
+               │                       │
+               └──────────┬────────────┘
+                          ▼
+                 ┌─────────────────┐
+                 │  GitHub Issues  │
+                 │  + Comments     │
+                 │  + Labels       │
+                 └─────────────────┘
 ```
 
 ### Technology Stack
@@ -75,9 +99,10 @@ RepoRanger uses a **multi-workflow orchestration** pattern:
 |-----------|-----------|---------|
 | **Orchestration** | [Kestra](https://kestra.io) | Workflow automation, scheduling, task coordination |
 | **AI/LLM** | [Groq](https://groq.com) | Fast inference with Llama 3.3 70B model |
+| **Frontend** | [Vercel](https://vercel.com) + Next.js | Production dashboard deployment |
 | **Integration** | GitHub API | Repository data access and updates |
-| **Execution** | Python 3.11 | Task scripting and API interactions |
-| **Triggers** | Webhooks + Cron | Real-time events + scheduled jobs |
+| **Code Quality** | [CodeRabbit](https://coderabbit.ai) | Automated code reviews |
+| **Execution** | Python 3.11 + Docker | Task scripting and containerization |
 
 ---
 
@@ -87,10 +112,10 @@ RepoRanger uses a **multi-workflow orchestration** pattern:
 
 - Docker & Docker Compose
 - GitHub Personal Access Token with `repo` scope
-- Groq API Key (free tier available)
+- Groq API Key (free tier available at [console.groq.com](https://console.groq.com))
 - Ngrok for webhook tunneling (development)
 
-### Installation
+### Quick Setup
 
 1. **Clone the repository**
 ```bash
@@ -98,13 +123,13 @@ RepoRanger uses a **multi-workflow orchestration** pattern:
    cd repo-ranger
 ```
 
-2. **Set up environment variables**
-```bash
-   # Create .env file
-   cat > .env << EOL
-   GROQ_API_KEY=your_groq_api_key_here
-   GITHUB_PAT=your_github_token_here
-   EOL
+2. **Configure Kestra with your API keys**
+   
+   Edit `docker-compose.yml` and add your keys:
+```yaml
+   environment:
+     GROQ_API_KEY: "your_groq_api_key"
+     GITHUB_PAT: "your_github_token"
 ```
 
 3. **Start Kestra**
@@ -113,107 +138,88 @@ RepoRanger uses a **multi-workflow orchestration** pattern:
 ```
 
 4. **Access Kestra UI**
-   - Open [http://localhost:8080](http://localhost:8080)
+   - Open http://localhost:8080
    - Login with credentials from docker-compose.yml
 
-5. **Import flows**
-   - Navigate to Flows in Kestra UI
-   - Import `flows/repo-ranger-listener.yml`
-   - Import `flows/weekly-issue-report.yml`
+5. **Import the flows**
+   - In Kestra UI, go to Flows
+   - Create `repo-ranger-listener` flow
+   - Create `weekly-issue-report` flow
 
 6. **Set up GitHub webhook**
-   - Go to your repo Settings → Webhooks
-   - Add webhook with your Ngrok URL + `/api/v1/executions/webhook/dev/repo-ranger-listener/hackathon-secret-key`
+   - Go to your repo Settings → Webhooks → Add webhook
+   - Payload URL: `https://your-ngrok-url/api/v1/executions/webhook/dev/repo-ranger-listener/hackathon-secret-key`
    - Content type: `application/json`
    - Events: Issues only
+   - Click "Add webhook"
 
----
-
-## 📋 Flows Documentation
-
-### Flow 1: `repo-ranger-listener`
-
-**Trigger:** GitHub webhook on issue events  
-**Actions:**
-1. Validates action type (only processes `opened` or `edited`)
-2. Calls Groq AI to classify the issue
-3. Parses classification results
-4. Posts analysis comment to GitHub
-5. Adds appropriate labels
-
-**Variables:**
-- `trigger.body.action` - GitHub event action
-- `trigger.body.issue.*` - Issue metadata
-- `outputs.classify_issue.body` - AI response
-
-### Flow 2: `weekly-issue-report`
-
-**Trigger:** Scheduled (Mondays at 9 AM UTC)  
-**Actions:**
-1. Fetches all issues from the past 7 days
-2. Analyzes patterns and trends with AI
-3. Generates strategic recommendations
-4. Creates a new GitHub issue with the report
-
-**Schedule:** `0 9 * * MON` (Every Monday at 9 AM)
-
----
-
-## 🎨 Example Output
-
-### Issue Comment Example
-```markdown
-🤖 **RepoRanger Analysis Complete!**
-
-**Category:** bug
-**Priority:** high
-**Summary:** Authentication fails when using OAuth tokens
-
-**Potentially Affected Files:**
-- `src/auth.py`
-- `config/oauth.json`
-- `middleware/auth_handler.py`
-
----
-*Powered by RepoRanger AI Agent*
-```
-
-### Weekly Report Example
-```markdown
-# 📊 Weekly RepoRanger Intelligence Report
-
-## Summary of Trends
-This week saw 23 issues, with 65% being bugs related to authentication...
-
-## Critical Issues
-- Issue #45: Security vulnerability in login endpoint (HIGH)
-- Issue #52: Database connection pool exhausted (HIGH)
-
-## Strategic Decisions
-1. Prioritize auth-related bugs this week
-2. Consider adding integration tests for auth flows
-3. Update documentation for OAuth setup
-
-## Recommendations
-- Add rate limiting to prevent connection pool issues
-- Create troubleshooting guide for common auth errors
-...
-```
-
----
-
-## 🧪 Testing
-
-### Manual Testing
-1. Create a test issue in your repository
-2. Check Kestra Executions tab for success
-3. Verify comment and labels appear on GitHub
-
-### Weekly Report Testing
+7. **Deploy the dashboard** (optional)
 ```bash
-# Trigger manually without waiting for Monday
-# In Kestra UI: Flows → weekly-issue-report → Execute
+   cd dashboard
+   npm install
+   npm run dev  # Local development
+   # OR deploy to Vercel for production
 ```
+
+---
+
+## 📋 Usage
+
+### Testing the Issue Listener
+
+1. Create a new issue in your GitHub repository
+2. Watch Kestra's Executions tab for the workflow
+3. Check your issue for the AI-generated comment
+4. Verify labels were added automatically
+
+### Running Weekly Reports Manually
+
+1. Go to Kestra UI → Flows → `weekly-issue-report`
+2. Click the "Execute" button (▶️)
+3. Check your repository for the new report issue
+
+### Viewing Analytics
+
+Visit your deployed dashboard at: https://your-app-url.vercel.app/
+
+Or run locally:
+```bash
+cd dashboard
+npm run dev
+# Open http://localhost:3000
+```
+
+---
+
+## 🎬 Demo
+
+> **[🎥 Watch the Demo Video](https://youtu.be/O4um-B1d66A)**
+
+### Quick Demo Flow
+
+1. **Create an issue** → "Bug: Login fails with OAuth"
+2. **Agent analyzes** → Classification: bug, Priority: high
+3. **Comment posted** → AI analysis with affected files
+4. **Labels added** → `bug`, `priority: high`
+5. **Dashboard updates** → Real-time stats and charts
+6. **Weekly report** → Strategic insights every Monday
+
+---
+
+## 📊 Impact
+
+### Time Savings
+- **Before**: 15-30 minutes per issue for manual triage
+- **After**: Instant automated analysis
+- **Result**: 90%+ time savings on issue management
+
+### Value Proposition
+For a repository with:
+- 100 issues/week
+- 20 min average triage time
+- = **33 hours/week saved**
+
+That's nearly a full-time role eliminated through automation!
 
 ---
 
@@ -222,17 +228,14 @@ This week saw 23 issues, with 65% being bugs related to authentication...
 Built for **AI Agents Assemble Hackathon**
 
 ### Sponsor Technologies Used
-- ✅ **Kestra** - Core orchestration engine
-- ✅ **Groq** - AI inference (Llama 3.3 70B)
-- ⏳ **Vercel** - Dashboard (coming soon)
-- ✅ **CodeRabbit** - Code review automation
-- ❌ **Cline** - Not applicable for this use case
-- ❌ **Oumi** - Skipped (time constraints)
 
-### Prize Categories Targeted
-- **Wakanda Data Award ($4k)** - AI-powered data summarization with decision-making
-- **Stormbreaker Deployment Award ($2k)** - Vercel dashboard (in progress)
-- **Captain Code Award ($1k)** - Clean OSS engineering with CodeRabbit
+✅ **Kestra** - Core workflow orchestration engine    
+✅ **Vercel** - Production-ready dashboard deployment  
+✅ **CodeRabbit** - Automated code quality reviews
+
+#### Additional Technology Used
+
+✅ **Groq** - Lightning-fast AI inference (Llama 3.3 70B)
 
 ---
 
@@ -241,46 +244,59 @@ Built for **AI Agents Assemble Hackathon**
 - [x] Real-time issue classification
 - [x] Auto-labeling and commenting
 - [x] Weekly intelligence reports
-- [ ] Vercel analytics dashboard
+- [x] Vercel analytics dashboard
 - [ ] Duplicate issue detection
-- [ ] Fix strategy recommendations
-- [ ] Email notifications
 - [ ] Multi-repository support
+- [ ] Email notifications
+- [ ] Slack integration
+- [ ] Custom AI model fine-tuning
+- [ ] Browser extension
 
 ---
 
 ## 🤝 Contributing
 
 Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
 
-CodeRabbit will automatically review your PR.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+CodeRabbit will automatically review your PR!
 
 ---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- Built with [Kestra](https://kestra.io) workflow orchestration
-- AI powered by [Groq](https://groq.com) and Llama 3.3
-- Code quality ensured by [CodeRabbit](https://coderabbit.ai)
+- **[Kestra](https://kestra.io)** - Powerful workflow orchestration
+- **[Groq](https://groq.com)** - Blazing-fast AI inference
+- **[Vercel](https://vercel.com)** - Seamless deployment platform
+- **[CodeRabbit](https://coderabbit.ai)** - Intelligent code reviews
+- **Llama 3.3 70B** - State-of-the-art language model
 
 ---
 
 ## 📞 Contact
 
-**Project Link:** [https://github.com/Geff115/repo-ranger](https://github.com/Geff115/repo-ranger)
-
-**Demo Video:** [Coming soon]
+**Project**: [github.com/Geff115/repo-ranger](https://github.com/Geff115/repo-ranger)
+**Live App**: [repo-ranger-8k3c.vercel.app](https://repo-ranger-8k3c.vercel.app/)  
+**Demo Video**: [youtu.be/O4um-B1d66A](https://youtu.be/O4um-B1d66A)  
+**Built by**: Gabriel Effangha
 
 ---
 
+<div align="center">
+
+**⭐ Star this repo if you find it useful!**
+
 Made with ❤️ for the AI Agents Assemble Hackathon
+
+</div>
