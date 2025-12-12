@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Activity, TrendingUp, Clock, CheckCircle, AlertCircle, FileText } from 'lucide-react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieLabelRenderProps } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 
 // Types
@@ -204,8 +204,8 @@ export default function Dashboard() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry: { name: string; percent: number }) => 
-                    `${entry.name} ${(entry.percent * 100).toFixed(0)}%`
+                  label={(props: PieLabelRenderProps) =>
+                    `${props.name ?? ''} ${(props.percent ?? 0 * 100).toFixed(0)}%`
                   }
                   outerRadius={100}
                   fill="#8884d8"
