@@ -1,0 +1,161 @@
+id: repo-ranger-listener
+namespace: dev
+description: "Listens for GitHub Issues and triggers the AI Agent pipeline."
+
+tasks:
+  - id: check_action
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ trigger.body.action == 'opened' or trigger.body.action == 'edited' }}"
+    then:
+      - id: log_issue_details
+        type: io.kestra.plugin.core.log.Log
+        message: |
+          🚨 **New GitHub Issue Event Detected!** 🚨
+          > Action: {{ trigger.body.action }}
+          > Repo: {{ trigger.body.repository.full_name }}
+          > Issue Title: {{ trigger.body.issue.title }}
+          > Sender: {{ trigger.body.sender.login }}
+          > Issue URL: {{ trigger.body.issue.html_url }}
+          
+          Starting Agent analysis...
+
+      - id: classify_issue
+        type: io.kestra.plugin.core.http.Request
+        uri: https://api.groq.com/openai/v1/chat/completions
+        method: POST
+        headers:
+          Authorization: "Bearer {{ env.GROQ_API_KEY }}"
+          content-type: "application/json"
+        body: |
+          {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+              {
+                "role": "user",
+                "content": "Analyze this GitHub issue and classify it. Respond with ONLY a JSON object in this exact format: {\"category\": \"bug|feature|documentation|question\", \"priority\": \"high|medium|low\", \"summary\": \"brief summary\", \"affected_files\": [\"likely file paths\"]}\n\nIssue Title: {{ trigger.body.issue.title }}\nIssue Body: {{ trigger.body.issue.body }}"
+              }
+            ],
+            "temperature": 0.3,
+            "max_tokens": 1024
+          }
+
+      - id: parse_classification
+        type: io.kestra.plugin.scripts.python.Script
+        beforeCommands:
+          - pip install requests
+        docker:
+          image: python:3.11-slim
+        outputFiles:
+          - "*.json"
+        script: |
+          import json
+          
+          groq_response = json.loads(r'''{{ outputs.classify_issue.body }}''')
+          classification = json.loads(groq_response['choices'][0]['message']['content'])
+          
+          with open('classification.json', 'w') as f:
+              json.dump(classification, f)
+          
+          print(f"Parsed classification: {classification}")
+
+      - id: post_comment
+        type: io.kestra.plugin.scripts.python.Script
+        beforeCommands:
+          - pip install requests
+        docker:
+          image: python:3.11-slim
+        inputFiles:
+          classification.json: "{{ outputs.parse_classification.outputFiles['classification.json'] }}"
+        script: |
+          import json
+          import requests
+          
+          with open('classification.json', 'r') as f:
+              classification = json.load(f)
+          
+          affected_files = '\n'.join(f"- `{f}`" for f in classification['affected_files'])
+          comment_body = f"""🤖 **RepoRanger Analysis Complete!**
+
+          **Category:** {classification['category']}
+          **Priority:** {classification['priority']}
+          **Summary:** {classification['summary']}
+
+          **Potentially Affected Files:**
+          {affected_files}
+
+          ---
+          *Powered by RepoRanger AI Agent*
+          """
+          
+          headers = {
+              "Authorization": "Bearer {{ env.GITHUB_PAT }}",
+              "Accept": "application/vnd.github+json"
+          }
+          
+          response = requests.post(
+              "{{ trigger.body.issue.comments_url }}",
+              headers=headers,
+              json={"body": comment_body}
+          )
+          
+          print(f"Comment posted! Status: {response.status_code}")
+          if response.status_code == 201:
+              print("✅ Success!")
+          else:
+              print(f"❌ Error: {response.text}")
+
+      - id: add_github_labels
+        type: io.kestra.plugin.scripts.python.Script
+        beforeCommands:
+          - pip install requests
+        docker:
+          image: python:3.11-slim
+        script: |
+          import json
+          import requests
+          
+          groq_response = json.loads(r'''{{ outputs.classify_issue.body }}''')
+          classification = json.loads(groq_response['choices'][0]['message']['content'])
+          
+          labels = []
+          
+          category_map = {
+              "bug": "bug",
+              "feature": "enhancement",
+              "documentation": "documentation",
+              "question": "question"
+          }
+          if classification['category'] in category_map:
+              labels.append(category_map[classification['category']])
+          
+          priority_map = {
+              "high": "priority: high",
+              "medium": "priority: medium",
+              "low": "priority: low"
+          }
+          if classification['priority'] in priority_map:
+              labels.append(priority_map[classification['priority']])
+          
+          headers = {
+              "Authorization": "Bearer {{ env.GITHUB_PAT }}",
+              "Accept": "application/vnd.github+json"
+          }
+          
+          response = requests.post(
+              "{{ trigger.body.issue.url }}/labels",
+              headers=headers,
+              json={"labels": labels}
+          )
+          
+          print(f"Labels added! Status: {response.status_code}")
+          print(f"Labels: {labels}")
+
+    else:
+      - id: skip_action
+        type: io.kestra.plugin.core.log.Log
+        message: "Skipping action: {{ trigger.body.action }} (only processing 'opened' or 'edited')"
+
+triggers:
+  - id: github_issue_trigger
+    type: io.kestra.plugin.core.trigger.Webhook
+    key: "hackathon-secret-key"
