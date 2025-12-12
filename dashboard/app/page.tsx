@@ -76,6 +76,7 @@ export default function Dashboard() {
   };
 
   const calculateStats = (issueData: Issue[]) => {
+    // Initialize stats dynamically
     const newStats = {
       total: issueData.length,
       bugs: 0,
@@ -87,21 +88,30 @@ export default function Dashboard() {
       lowPriority: 0,
     };
 
-    issueData.forEach(issue => {
-      const labels = issue.labels.map(l => l.name);
-      
-      if (labels.includes('bug')) newStats.bugs++;
-      if (labels.includes('enhancement')) newStats.features++;
-      if (labels.includes('documentation')) newStats.docs++;
-      if (labels.includes('question')) newStats.questions++;
-      
-      if (labels.includes('priority: high')) newStats.highPriority++;
-      if (labels.includes('priority: medium')) newStats.mediumPriority++;
-      if (labels.includes('priority: low')) newStats.lowPriority++;
-    });
+    // Label → stat mapping
+    const labelMap: Record<string, keyof typeof newStats> = {
+      bug: "bugs",
+      enhancement: "features",
+      documentation: "docs",
+      question: "questions",
+      "priority: high": "highPriority",
+      "priority: medium": "mediumPriority",
+      "priority: low": "lowPriority",
+    };
+
+    // One pass through issues → one pass through labels
+    for (const issue of issueData) {
+      for (const { name } of issue.labels) {
+        const mapped = labelMap[name];
+        if (mapped) {
+          newStats[mapped]++;
+        }
+      }
+    }
 
     setStats(newStats);
   };
+
 
   const categoryData: CategoryData[] = [
     { name: 'Bugs', value: stats.bugs, color: COLORS.bug },
