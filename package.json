@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "date-fns": "^4.1.0",
-    "lucide-react": "^0.560.0",
-    "recharts": "^3.5.1"
-  }
-}
