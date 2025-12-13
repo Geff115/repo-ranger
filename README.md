@@ -328,7 +328,7 @@ Built for **AI Agents Assemble Hackathon**
 - [x] Auto-labeling and commenting
 - [x] Weekly intelligence reports
 - [x] Vercel analytics dashboard
-- [ ] Duplicate issue detection
+- [x] Duplicate issue detection
 - [ ] Multi-repository support
 - [ ] Email notifications
 - [ ] Slack integration
