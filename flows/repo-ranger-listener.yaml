@@ -1,6 +1,6 @@
 id: repo-ranger-listener
 namespace: dev
-description: "Listens for GitHub Issues and triggers the AI Agent pipeline."
+description: "Listens for GitHub Issues and triggers the AI Agent pipeline with duplicate detection."
 
 tasks:
   - id: check_action
@@ -18,105 +18,214 @@ tasks:
           > Issue URL: {{ trigger.body.issue.html_url }}
           
           Starting Agent analysis...
-
-      - id: classify_issue
-        type: io.kestra.plugin.core.http.Request
-        uri: https://api.groq.com/openai/v1/chat/completions
-        method: POST
-        headers:
-          Authorization: "Bearer {{ env.GROQ_API_KEY }}"
-          content-type: "application/json"
-        body: |
-          {
-            "model": "llama-3.3-70b-versatile",
-            "messages": [
-              {
-                "role": "user",
-                "content": "Analyze this GitHub issue and classify it. Respond with ONLY a JSON object in this exact format: {\"category\": \"bug|feature|documentation|question\", \"priority\": \"high|medium|low\", \"summary\": \"brief summary\", \"affected_files\": [\"likely file paths\"]}\n\nIssue Title: {{ trigger.body.issue.title }}\nIssue Body: {{ trigger.body.issue.body }}"
-              }
-            ],
-            "temperature": 0.3,
-            "max_tokens": 1024
-          }
-
-      - id: parse_classification
+      
+      - id: classify_and_analyze
         type: io.kestra.plugin.scripts.python.Script
         beforeCommands:
           - pip install requests
         docker:
           image: python:3.11-slim
-        outputFiles:
-          - "*.json"
-        script: |
-          import json
-          
-          groq_response = json.loads(r'''{{ outputs.classify_issue.body }}''')
-          classification = json.loads(groq_response['choices'][0]['message']['content'])
-          
-          with open('classification.json', 'w') as f:
-              json.dump(classification, f)
-          
-          print(f"Parsed classification: {classification}")
-
-      - id: post_comment
-        type: io.kestra.plugin.scripts.python.Script
-        beforeCommands:
-          - pip install requests
-        docker:
-          image: python:3.11-slim
-        inputFiles:
-          classification.json: "{{ outputs.parse_classification.outputFiles['classification.json'] }}"
+          networkMode: host
         script: |
           import json
           import requests
+          import re
+          from datetime import datetime, timedelta
           
-          with open('classification.json', 'r') as f:
-              classification = json.load(f)
-          
-          affected_files = '\n'.join(f"- `{f}`" for f in classification['affected_files'])
-          comment_body = f"""🤖 **RepoRanger Analysis Complete!**
-
-          **Category:** {classification['category']}
-          **Priority:** {classification['priority']}
-          **Summary:** {classification['summary']}
-
-          **Potentially Affected Files:**
-          {affected_files}
-
-          ---
-          *Powered by RepoRanger AI Agent*
-          """
+          # Extract current issue details
+          current_issue_number = {{ trigger.body.issue.number }}
+          current_issue_title = r"""{{ trigger.body.issue.title }}"""
+          current_issue_body = r"""{{ trigger.body.issue.body }}"""
+          issue_url = "{{ trigger.body.issue.url }}"
+          comments_url = "{{ trigger.body.issue.comments_url }}"
           
           headers = {
               "Authorization": "Bearer {{ env.GITHUB_PAT }}",
               "Accept": "application/vnd.github+json"
           }
           
-          response = requests.post(
-              "{{ trigger.body.issue.comments_url }}",
+          # Fetch recent issues for duplicate detection
+          since_date = (datetime.now() - timedelta(days=90)).isoformat()
+          
+          print(f"Fetching recent issues since {since_date}...")
+          
+          response = requests.get(
+              "https://api.github.com/repos/Geff115/repo-ranger/issues",
+              headers=headers,
+              params={"state": "all", "since": since_date, "per_page": 100}
+          )
+          
+          if response.status_code != 200:
+              print(f"GitHub API error: {response.status_code}")
+              print(f"Response: {response.text}")
+              issues = []
+          else:
+              issues = response.json()
+          
+          # Filter out current issue and reports
+          recent_issues = []
+          for issue in issues:
+              if issue["number"] != current_issue_number:
+                  labels = [l["name"] for l in issue.get("labels", [])]
+                  if "report" not in labels and "ai-generated" not in labels:
+                      recent_issues.append({
+                          "number": issue["number"],
+                          "title": issue["title"],
+                          "body": issue.get("body", "")[:500],
+                          "state": issue["state"],
+                          "url": issue["html_url"]
+                      })
+          
+          print(f"Fetched {len(recent_issues)} recent issues for duplicate detection")
+          
+          # Build AI prompt
+          json_format = {
+              "category": "bug|feature|documentation|question",
+              "priority": "high|medium|low",
+              "summary": "brief summary",
+              "affected_files": ["likely file paths"],
+              "duplicate_detection": {
+                  "is_duplicate": "true/false",
+                  "similar_issues": [{"number": 123, "title": "...", "similarity": "high|medium|low", "reason": "why similar"}],
+                  "recommendation": "what to do about it"
+              },
+              "suggested_next_steps": ["step 1", "step 2"]
+          }
+          json_format_str = json.dumps(json_format, indent=2)
+          
+          prompt = f"""Analyze this GitHub issue and provide classification. Also check if it's similar to any recent issues.
+
+          CURRENT ISSUE:
+          Title: {current_issue_title}
+          Body: {current_issue_body}
+
+          RECENT ISSUES:
+          {json.dumps(recent_issues, indent=2)}
+
+          Respond with ONLY a JSON object (no markdown formatting, no code fences) in this exact format:
+          {json_format_str}"""
+          
+          print("Calling Groq AI...")
+          
+          # Call Groq AI
+          groq_response = requests.post(
+              "https://api.groq.com/openai/v1/chat/completions",
+              headers={
+                  "Authorization": "Bearer {{ env.GROQ_API_KEY }}",
+                  "Content-Type": "application/json"
+              },
+              json={
+                  "model": "llama-3.3-70b-versatile",
+                  "messages": [
+                      {
+                          "role": "system",
+                          "content": "You are RepoRanger AI, an expert at analyzing GitHub issues. You provide detailed classification and can identify duplicate or similar issues. Always respond with valid JSON only, without any markdown formatting or code fences."
+                      },
+                      {
+                          "role": "user",
+                          "content": prompt
+                      }
+                  ],
+                  "temperature": 0.3,
+                  "max_tokens": 2000
+              }
+          )
+          
+          print(f"Groq API Status: {groq_response.status_code}")
+          
+          if groq_response.status_code != 200:
+              print(f"Groq API error: {groq_response.text}")
+              raise Exception(f"Groq API failed with status {groq_response.status_code}")
+          
+          try:
+              groq_json = groq_response.json()
+              
+              if 'choices' not in groq_json or not groq_json['choices']:
+                  print(f"Unexpected Groq response structure: {groq_json}")
+                  raise Exception("Invalid response structure from Groq API")
+              
+              ai_content = groq_json['choices'][0]['message']['content']
+              print(f"AI raw content length: {len(ai_content)}")
+              
+              # Strip markdown code fences if present
+              ai_content = ai_content.strip()
+              
+              # Remove ```json or ``` from start
+              ai_content = re.sub(r'^```(?:json)?\s*', '', ai_content)
+              # Remove ``` from end
+              ai_content = re.sub(r'\s*```$', '', ai_content)
+              
+              ai_content = ai_content.strip()
+              
+              print(f"Cleaned AI content preview: {ai_content[:200]}...")
+              
+              # Try to parse the AI response
+              classification = json.loads(ai_content)
+              
+          except json.JSONDecodeError as e:
+              print(f"JSON decode error: {e}")
+              print(f"Cleaned content: {ai_content[:1000]}")
+              raise
+          
+          print(f"Classification successful!")
+          print(f"Category: {classification.get('category')}")
+          print(f"Priority: {classification.get('priority')}")
+          
+          # Build enhanced comment
+          affected_files = '\n'.join(f"- `{f}`" for f in classification.get('affected_files', []))
+          next_steps = '\n'.join(f"{i+1}. {step}" for i, step in enumerate(classification.get('suggested_next_steps', [])))
+          
+          # Duplicate detection section
+          duplicate_info = classification.get('duplicate_detection', {})
+          duplicate_section = ""
+          
+          if duplicate_info.get('is_duplicate') or duplicate_info.get('similar_issues'):
+              similar_issues = duplicate_info.get('similar_issues', [])
+              if similar_issues:
+                  duplicate_section = "\n\n## 🔍 Duplicate Detection\n\n"
+                  if str(duplicate_info.get('is_duplicate')).lower() == 'true':
+                      duplicate_section += "⚠️ **This appears to be a duplicate or very similar to existing issues:**\n\n"
+                  else:
+                      duplicate_section += "ℹ️ **Found similar issues that might be related:**\n\n"
+                  
+                  for issue in similar_issues:
+                      similarity_emoji = "🔴" if issue.get('similarity') == 'high' else "🟡" if issue.get('similarity') == 'medium' else "🟢"
+                      duplicate_section += f"{similarity_emoji} **#{issue.get('number')}**: [{issue.get('title', 'Unknown')}](https://github.com/Geff115/repo-ranger/issues/{issue.get('number')})\n"
+                      duplicate_section += f"   - Similarity: {issue.get('similarity', 'unknown')}\n"
+                      duplicate_section += f"   - Reason: {issue.get('reason', 'N/A')}\n\n"
+                  
+                  if duplicate_info.get('recommendation'):
+                      duplicate_section += f"**💡 Recommendation:** {duplicate_info['recommendation']}\n"
+          
+          comment_body = f"""🤖 **RepoRanger Analysis Complete!**
+
+          **Category:** {classification.get('category', 'unknown')}
+          **Priority:** {classification.get('priority', 'unknown')}
+          **Summary:** {classification.get('summary', 'N/A')}
+
+          **Potentially Affected Files:**
+          {affected_files if affected_files else 'No files identified'}
+
+          **Suggested Next Steps:**
+          {next_steps if next_steps else 'No specific steps suggested'}
+          {duplicate_section}
+
+          ---
+          *Powered by RepoRanger AI Agent • [View Dashboard](https://repo-ranger-8k3c.vercel.app/)*
+          """
+          
+          print("Posting comment to GitHub...")
+          
+          # Post comment
+          comment_response = requests.post(
+              comments_url,
               headers=headers,
               json={"body": comment_body}
           )
           
-          print(f"Comment posted! Status: {response.status_code}")
-          if response.status_code == 201:
-              print("✅ Success!")
-          else:
-              print(f"❌ Error: {response.text}")
-
-      - id: add_github_labels
-        type: io.kestra.plugin.scripts.python.Script
-        beforeCommands:
-          - pip install requests
-        docker:
-          image: python:3.11-slim
-        script: |
-          import json
-          import requests
+          print(f"Comment posted! Status: {comment_response.status_code}")
           
-          groq_response = json.loads(r'''{{ outputs.classify_issue.body }}''')
-          classification = json.loads(groq_response['choices'][0]['message']['content'])
-          
+          # Add labels
           labels = []
           
           category_map = {
@@ -125,7 +234,7 @@ tasks:
               "documentation": "documentation",
               "question": "question"
           }
-          if classification['category'] in category_map:
+          if classification.get('category') in category_map:
               labels.append(category_map[classification['category']])
           
           priority_map = {
@@ -133,22 +242,28 @@ tasks:
               "medium": "priority: medium",
               "low": "priority: low"
           }
-          if classification['priority'] in priority_map:
+          if classification.get('priority') in priority_map:
               labels.append(priority_map[classification['priority']])
           
-          headers = {
-              "Authorization": "Bearer {{ env.GITHUB_PAT }}",
-              "Accept": "application/vnd.github+json"
-          }
+          # Add duplicate label if detected (handle both boolean and string "true")
+          is_dup = duplicate_info.get('is_duplicate')
+          if is_dup is True or str(is_dup).lower() == 'true':
+              labels.append("duplicate")
           
-          response = requests.post(
-              "{{ trigger.body.issue.url }}/labels",
-              headers=headers,
-              json={"labels": labels}
-          )
+          if labels:
+              print(f"Adding labels: {labels}")
+              label_response = requests.post(
+                  f"{issue_url}/labels",
+                  headers=headers,
+                  json={"labels": labels}
+              )
+              
+              print(f"Labels added! Status: {label_response.status_code}")
           
-          print(f"Labels added! Status: {response.status_code}")
-          print(f"Labels: {labels}")
+          if comment_response.status_code == 201:
+              print("✅ All operations completed successfully!")
+          else:
+              print(f"⚠️ Comment posting failed: {comment_response.text}")
 
     else:
       - id: skip_action

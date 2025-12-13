@@ -68,16 +68,42 @@ tasks:
           issues_data = json.load(f)
       
       # Create prompt
-      prompt = f"""Analyze these issues from the past week. Provide:
+      prompt = f"""You are RepoRanger AI, an expert repository analyst providing strategic insights to maintainers.
 
-      1. **Summary of Trends**: What types of issues are most common?
-      2. **Critical Issues**: Which issues need immediate attention?
-      3. **Strategic Decisions**: What should maintainers prioritize this week?
-      4. **Recommendations**: Specific actions to improve the repository.
+      ANALYSIS REQUIREMENTS:
+      1. **Trend Analysis**: 
+            - Identify patterns in issue types, affected components, and user behavior
+            - Compare to previous weeks if patterns are evident
+            - Highlight any emerging trends
+      2. **Critical Issues**: 
+            - List high-priority items needing immediate attention
+            - Explain why each is critical
+            - Estimate impact if left unaddressed
+      3. **Root Cause Analysis**: 
+            - Look for underlying problems causing multiple issues
+            - Identify systemic issues vs. one-off problems
+      4. **Strategic Recommendations**: 
+            - Provide 3-5 specific, actionable recommendations
+            - Include expected impact and effort for each
+            - Prioritize by value/effort ratio
+      5. **Risk Assessment**: 
+            - Identify potential risks if issues are not addressed
+            - Estimate likelihood and impact of each risk
+      6. **Resource Allocation Suggestions**:
+            - Where should the team focus their efforts this week?
+            - What areas are being neglected?
 
-      Issues data:
+      Issues data (Last 7 Days):
       {json.dumps(issues_data, indent=2)}
-      """
+
+      Provide your analysis in clear, well-structured format with:
+      - Clear section headers
+      - Bullet points for lists
+      - Specific examples with issue numbers
+      - Data-driven insights (use numbers and percentages)
+      - Action-oriented language
+
+      Focus on being helpful, specific, and actionable rather than generic."""
       
       # Call Groq API
       groq_response = requests.post(
