@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Activity, TrendingUp, Clock, CheckCircle, AlertCircle, FileText, Link } from 'lucide-react';
+import { Activity, TrendingUp, Clock, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieLabelRenderProps } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 
