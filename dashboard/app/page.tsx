@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Activity, TrendingUp, Clock, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { Activity, TrendingUp, Clock, CheckCircle, AlertCircle, FileText, Link } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieLabelRenderProps } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -162,9 +162,17 @@ export default function Dashboard() {
                 <p className="text-slate-400 text-sm">AI-Powered Repository Intelligence</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/30">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-green-400 text-sm font-medium">Agent Active</span>
+            <div className="flex items-center gap-4">
+              <Link 
+                href="/how-it-works"
+                className="px-4 py-2 bg-purple-500/20 rounded-lg border border-purple-500/30 hover:bg-purple-500/30 transition-colors text-sm font-medium"
+              >
+                How It Works
+              </Link>
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/30">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-green-400 text-sm font-medium">Agent Active</span>
+              </div>
             </div>
           </div>
         </div>
