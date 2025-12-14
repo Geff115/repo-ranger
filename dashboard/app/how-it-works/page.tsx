@@ -125,7 +125,7 @@ export default function HowItWorks() {
               <div className="flex-1 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
                 <h4 className="text-2xl font-semibold mb-3">2. AI Analysis</h4>
                 <p className="text-slate-300 mb-4">
-                  Groq's Llama 3.3 70B model analyzes the issue content and provides:
+                  The built-in Kestra AI Agent utilizes Groq's openai/gpt-oss-120b model to analyze issue content and provides:
                 </p>
                 <ul className="space-y-2 text-slate-300">
                   <li className="flex items-start gap-2">
