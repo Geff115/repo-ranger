@@ -11,7 +11,7 @@
 
 **An intelligent AI agent that automatically triages GitHub issues, provides contextual analysis, and generates strategic insights for repository maintainers.**
 
-[View Live Dashboard](https://repo-ranger-8k3c.vercel.app/) • [Watch Demo](https://youtu.be/VFV5bQbsDrw) • [Read Docs](#documentation)
+[View Live Dashboard](https://repo-ranger-8k3c.vercel.app/) • [Watch Demo](https://youtu.be/z8dyJHdTEDo) • [Read Docs](#documentation)
 
 </div>
 
@@ -416,7 +416,7 @@ npm run dev
 
 ## 🎬 Demo
 
-> **[🎥 Watch the Demo Video](https://youtu.be/VFV5bQbsDrw)**
+> **[🎥 Watch the Demo Video](https://youtu.be/z8dyJHdTEDo)**
 
 ### Quick Demo Flow
 
@@ -512,7 +512,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Project**: [github.com/Geff115/repo-ranger](https://github.com/Geff115/repo-ranger)
 **Live App**: [repo-ranger-8k3c.vercel.app](https://repo-ranger-8k3c.vercel.app/)  
-**Demo Video**: [youtu.be/VFV5bQbsDrw](https://youtu.be/VFV5bQbsDrw)  
+**Demo Video**: [youtu.be/z8dyJHdTEDo](https://youtu.be/z8dyJHdTEDo)  
 **Built by**: Gabriel Effangha
 
 ---
