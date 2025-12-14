@@ -1,6 +1,6 @@
 id: weekly-issue-report
 namespace: dev
-description: "Weekly AI-powered issue analysis and decision-making"
+description: "Weekly AI-powered issue analysis and decision-making using Kestra's built-in AI Agent"
 
 tasks:
   - id: fetch_recent_issues
@@ -20,14 +20,14 @@ tasks:
       since_date = (datetime.now() - timedelta(days=7)).isoformat()
       
       headers = {
-          "Authorization": "Bearer {{ env.GITHUB_PAT }}",
+          "Authorization": "Bearer {{ kv('GITHUB_PAT') }}",
           "Accept": "application/vnd.github+json"
       }
       
       response = requests.get(
           "https://api.github.com/repos/Geff115/repo-ranger/issues",
           headers=headers,
-          params={"state": "all", "since": since_date}
+          params={"state": "all", "since": since_date, "per_page": 100}
       )
       
       issues = response.json()
@@ -35,27 +35,100 @@ tasks:
       # Extract relevant data
       issue_data = []
       for issue in issues:
-          issue_data.append({
-              "title": issue["title"],
-              "state": issue["state"],
-              "labels": [l["name"] for l in issue.get("labels", [])],
-              "created_at": issue["created_at"],
-              "comments": issue["comments"],
-              "body": issue.get("body", "")[:200]  # First 200 chars
-          })
+          # Skip reports and AI-generated issues
+          labels = [l["name"] for l in issue.get("labels", [])]
+          if "report" not in labels and "ai-generated" not in labels:
+              issue_data.append({
+                  "number": issue["number"],
+                  "title": issue["title"],
+                  "state": issue["state"],
+                  "labels": labels,
+                  "created_at": issue["created_at"],
+                  "comments": issue["comments"],
+                  "body": issue.get("body", "")[:500]  # First 500 chars
+              })
       
       with open('issues.json', 'w') as f:
           json.dump(issue_data, f, indent=2)
       
       print(f"Fetched {len(issue_data)} issues from the past week")
-      print(f"Issue data saved to issues.json")
+      print(f"Issue data: {json.dumps(issue_data[:3], indent=2)}...")  # Preview first 3
 
-  - id: ai_analyze_and_report
+  - id: ai_agent_analysis
+    type: io.kestra.plugin.ai.agent.AIAgent
+    provider:
+      type: io.kestra.plugin.ai.provider.OpenAI
+      apiKey: "{{ kv('GROQ_API_KEY') }}"
+      modelName: llama-3.3-70b-versatile
+      baseUrl: https://api.groq.com/openai/v1
+    configuration:
+      temperature: 0.5
+      maxToken: 3000
+    systemMessage: |
+      You are RepoRanger AI, an expert repository analyst and strategic advisor.
+      
+      Your role is to:
+      1. Analyze GitHub issue patterns and trends
+      2. Make strategic DECISIONS on resource allocation
+      3. Provide actionable recommendations with specific priorities
+      4. Identify systemic problems before they escalate
+      
+      You must be specific, data-driven, and decision-oriented.
+      Use issue numbers, percentages, and concrete examples.
+    prompt: |
+      Analyze the following GitHub issues from the past 7 days and provide strategic intelligence.
+
+      CRITICAL REQUIREMENTS - You must make DECISIONS in these areas:
+      
+      1. **Trend Analysis**:
+         - What patterns emerge across issue types and components?
+         - Compare to typical behavior if patterns are evident
+         - Identify emerging trends that need attention
+      
+      2. **Critical Issues Identification**:
+         - **DECIDE** which issues are critical and need immediate action
+         - List specific issue numbers with justification
+         - Estimate impact if unaddressed (use HIGH/MEDIUM/LOW)
+      
+      3. **Root Cause Analysis**:
+         - Identify underlying problems causing multiple issues
+         - Distinguish systemic problems from isolated incidents
+         - **DECIDE** if architectural changes are needed
+      
+      4. **Strategic Resource Allocation DECISIONS**:
+         - **DECIDE** where the team should focus this week
+         - **DECIDE** which areas are being neglected
+         - **DECIDE** priority ranking of issues
+         - Justify each decision with data
+      
+      5. **Risk Assessment with DECISIONS**:
+         - Identify risks if issues remain unaddressed
+         - Rate likelihood (HIGH/MEDIUM/LOW) and impact
+         - **DECIDE** acceptable vs. unacceptable risks
+      
+      6. **Actionable Recommendations**:
+         - Provide 3-5 specific recommendations
+         - Include expected impact and effort (e.g., "HIGH impact, MEDIUM effort")
+         - **DECIDE** the priority order
+         - Be specific about what to do and who should do it
+
+      ISSUES DATA (Last 7 Days):
+      {{ read(outputs.fetch_recent_issues.outputFiles['issues.json']) }}
+
+      Format your response with:
+      - Clear section headers
+      - Specific issue numbers and examples
+      - Data-driven insights (percentages, counts)
+      - Clear DECISIONS highlighted in bold
+      - Action-oriented language
+
+      Remember: This is for repository maintainers who need to make strategic decisions.
+      Be specific, quantitative, and decisively actionable.
+
+  - id: post_weekly_report
     type: io.kestra.plugin.scripts.python.Script
     beforeCommands:
       - pip install requests
-    inputFiles:
-      issues.json: "{{ outputs.fetch_recent_issues.outputFiles['issues.json'] }}"
     docker:
       image: python:3.11-slim
     script: |
@@ -63,111 +136,65 @@ tasks:
       import requests
       from datetime import datetime, timedelta
       
-      # Read issues
-      with open('issues.json', 'r') as f:
-          issues_data = json.load(f)
+      # Get AI analysis from Kestra's AI Agent output
+      ai_analysis = r"""{{ outputs.ai_agent_analysis.textOutput }}"""
       
-      # Create prompt
-      prompt = f"""You are RepoRanger AI, an expert repository analyst providing strategic insights to maintainers.
-
-      ANALYSIS REQUIREMENTS:
-      1. **Trend Analysis**: 
-            - Identify patterns in issue types, affected components, and user behavior
-            - Compare to previous weeks if patterns are evident
-            - Highlight any emerging trends
-      2. **Critical Issues**: 
-            - List high-priority items needing immediate attention
-            - Explain why each is critical
-            - Estimate impact if left unaddressed
-      3. **Root Cause Analysis**: 
-            - Look for underlying problems causing multiple issues
-            - Identify systemic issues vs. one-off problems
-      4. **Strategic Recommendations**: 
-            - Provide 3-5 specific, actionable recommendations
-            - Include expected impact and effort for each
-            - Prioritize by value/effort ratio
-      5. **Risk Assessment**: 
-            - Identify potential risks if issues are not addressed
-            - Estimate likelihood and impact of each risk
-      6. **Resource Allocation Suggestions**:
-            - Where should the team focus their efforts this week?
-            - What areas are being neglected?
-
-      Issues data (Last 7 Days):
-      {json.dumps(issues_data, indent=2)}
-
-      Provide your analysis in clear, well-structured format with:
-      - Clear section headers
-      - Bullet points for lists
-      - Specific examples with issue numbers
-      - Data-driven insights (use numbers and percentages)
-      - Action-oriented language
-
-      Focus on being helpful, specific, and actionable rather than generic."""
-      
-      # Call Groq API
-      groq_response = requests.post(
-          "https://api.groq.com/openai/v1/chat/completions",
-          headers={
-              "Authorization": "Bearer {{ env.GROQ_API_KEY }}",
-              "Content-Type": "application/json"
-          },
-          json={
-              "model": "llama-3.3-70b-versatile",
-              "messages": [
-                  {
-                      "role": "system",
-                      "content": "You are RepoRanger AI, an intelligent agent that analyzes GitHub repository issues and makes strategic recommendations for maintainers. Analyze patterns, identify trends, and make actionable decisions."
-                  },
-                  {
-                      "role": "user",
-                      "content": prompt
-                  }
-              ],
-              "temperature": 0.5,
-              "max_tokens": 2000
-          }
-      )
-      
-      ai_analysis = groq_response.json()['choices'][0]['message']['content']
+      print(f"AI Analysis length: {len(ai_analysis)} characters")
+      print(f"AI Analysis preview: {ai_analysis[:500]}...")
       
       # Post to GitHub
-      github_headers = {
-          "Authorization": "Bearer {{ env.GITHUB_PAT }}",
+      headers = {
+          "Authorization": "Bearer {{ kv('GITHUB_PAT') }}",
           "Accept": "application/vnd.github+json"
       }
       
       next_week = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
+      current_date = datetime.now().strftime('%Y-%m-%d %H:%M UTC')
       
       issue_body = f"""# 📊 Weekly RepoRanger Intelligence Report
 
       {ai_analysis}
 
       ---
-      **Report Details:**
-      - Generated: {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}
-      - Next Report: {next_week}
-      - Powered by RepoRanger AI Agent
 
-      *This report was automatically generated by analyzing issue patterns and making data-driven decisions.*
+      ## 📋 Report Metadata
+
+      **Analysis Period:** Last 7 days  
+      **Generated:** {current_date}  
+      **Next Report:** {next_week}  
+      **Powered by:** Kestra AI Agent with Groq (Llama 3.3 70B)
+
+      ---
+
+      ### 🤖 About This Report
+
+      This report was automatically generated using **Kestra's built-in AI Agent** to:
+      - ✅ Summarize GitHub issue data from the past week
+      - ✅ Identify patterns and trends across issues
+      - ✅ **Make strategic decisions** on resource allocation
+      - ✅ **Decide** which issues need immediate attention
+      - ✅ **Decide** acceptable vs. unacceptable risks
+      - ✅ Provide data-driven, actionable recommendations
+
+      *The AI Agent analyzes issue patterns and makes autonomous decisions to guide repository management strategy.*
       """
       
-      github_response = requests.post(
+      response = requests.post(
           "https://api.github.com/repos/Geff115/repo-ranger/issues",
-          headers=github_headers,
+          headers=headers,
           json={
               "title": f"📊 Weekly Intelligence Report - {datetime.now().strftime('%B %d, %Y')}",
               "body": issue_body,
-              "labels": ["report", "automated", "ai-generated"]
+              "labels": ["report", "automated", "ai-generated", "kestra-ai-agent"]
           }
       )
       
-      print(f"Weekly report posted! Status: {github_response.status_code}")
-      if github_response.status_code == 201:
+      print(f"Weekly report posted! Status: {response.status_code}")
+      if response.status_code == 201:
           print("✅ Report created successfully!")
-          print(f"URL: {github_response.json()['html_url']}")
+          print(f"Report URL: {response.json()['html_url']}")
       else:
-          print(f"❌ Error: {github_response.text}")
+          print(f"❌ Error posting report: {response.text}")
 
 triggers:
   - id: weekly_schedule
