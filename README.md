@@ -6,7 +6,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-blue?style=for-the-badge)](https://repo-ranger-8k3c.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Powered by Kestra](https://img.shields.io/badge/Orchestration-Kestra-blue?style=for-the-badge)](https://kestra.io)
+[![Powered by Kestra's built-in AI Agent](https://img.shields.io/badge/Orchestration-Kestra-blue?style=for-the-badge)](https://kestra.io)
 [![AI: Groq](https://img.shields.io/badge/AI-Groq-orange?style=for-the-badge)](https://groq.com)
 
 **An intelligent AI agent that automatically triages GitHub issues, provides contextual analysis, and generates strategic insights for repository maintainers.**
@@ -127,6 +127,146 @@ Weekly reports go beyond simple summaries:
 
 ---
 
+---
+
+## 🏆 Kestra AI Agent Integration
+
+RepoRanger leverages **Kestra's built-in AI Agent** (`io.kestra.plugin.ai.agent.AIAgent`) as the core intelligence engine, using Groq as the provider for fast, reliable AI inference.
+
+### How I Use Kestra's AI Agent
+
+#### 1. Real-Time Issue Classification
+**Flow**: `repo-ranger-listener`  
+**AI Agent Task**: `ai_agent_classification`
+```yaml
+type: io.kestra.plugin.ai.agent.AIAgent
+provider:
+  type: io.kestra.plugin.ai.provider.OpenAI
+  apiKey: "{{ kv('GROQ_API_KEY') }}"
+  modelName: openai/gpt-oss-120b
+  baseUrl: https://api.groq.com/openai/v1
+configuration:
+  responseFormat:
+    type: JSON
+    jsonSchema: # Structured output for classification
+```
+
+**What the AI Agent does:**
+- ✅ Analyzes issue title and body
+- ✅ Compares against 90 days of historical issues
+- ✅ Classifies category (bug/feature/documentation/question)
+- ✅ Assigns priority (high/medium/low)
+- ✅ Identifies affected files
+- ✅ Detects duplicate issues with similarity scoring
+- ✅ Generates suggested next steps
+
+**Output**: Structured JSON with classification, duplicates, and recommendations
+
+---
+
+#### 2. Weekly Strategic Intelligence
+**Flow**: `weekly-issue-report`  
+**AI Agent Task**: `ai_agent_analysis`
+```yaml
+type: io.kestra.plugin.ai.agent.AIAgent
+provider:
+  type: io.kestra.plugin.ai.provider.OpenAI
+  apiKey: "{{ kv('GROQ_API_KEY') }}"
+  modelName: llama-3.3-70b-versatile
+  baseUrl: https://api.groq.com/openai/v1
+configuration:
+  temperature: 0.5
+  maxToken: 3000
+```
+
+**What the AI Agent decides:**
+- 📊 **Summarizes** issue data from the past 7 days
+- 🎯 **Identifies trends**: Patterns across issue types and components
+- 🚨 **DECIDES critical issues**: Which need immediate attention
+- 👥 **DECIDES resource allocation**: Where the team should focus
+- ⚠️ **DECIDES risk levels**: Acceptable vs. unacceptable risks
+- 🏗️ **DECIDES architectural changes**: When systemic fixes are needed
+- 📋 **Assigns tasks**: Specific developer responsibilities
+
+**Output**: Strategic markdown report with explicit decisions
+
+---
+
+### Why Kestra's AI Agent?
+
+1. **Native Integration**: Seamlessly integrates with Kestra workflows
+2. **Provider Flexibility**: Can use any OpenAI-compatible API (I use Groq)
+3. **Structured Outputs**: JSON Schema support for reliable parsing
+4. **Decision-Making**: Goes beyond summarization to autonomous decisions
+5. **Workflow Orchestration**: Combined with Kestra's scheduling and webhooks
+
+### Real Example Output
+
+**From Issue Classification:**
+```json
+{
+  "category": "bug",
+  "priority": "high",
+  "summary": "Login fails when using Google OAuth",
+  "affected_files": [
+    "src/auth/oauth_service.py",
+    "src/auth/login_controller.js",
+    "config/oauth_config.yml"
+  ],
+  "duplicate_detection": {
+    "is_duplicate": true,
+    "similar_issues": [
+      {
+        "number": 42,
+        "title": "Google OAuth Issues",
+        "similarity": "high",
+        "reason": "Both report failures with the Continue with Google login flow"
+      }
+    ],
+    "recommendation": "Link this issue to #42, investigate OAuth client configuration"
+  }
+}
+```
+
+**From Weekly Report:**
+> **DECISION**: The team should focus on addressing the critical issues (#48, #42, #29) this week.
+> 
+> **DECISION**: Architectural changes are needed to address OAuth login functionality.
+> 
+> **DECISION**: Priority ranking:
+> 1. Critical issues (HIGH impact, HIGH effort)
+> 2. Bug fixes (MEDIUM impact, MEDIUM effort)
+> 3. Enhancements (LOW impact, LOW effort)
+
+---
+
+### Technical Architecture
+```mermaid
+graph LR
+    A[GitHub Issue] -->|Webhook| B[Kestra Workflow]
+    B --> C[Kestra AI Agent]
+    C -->|Groq API| D[Llama 3.3 70B]
+    D -->|Classification| C
+    C --> E[GitHub API]
+    E -->|Comment + Labels| A
+    
+    F[Cron Schedule] --> G[Weekly Report Flow]
+    G --> H[Kestra AI Agent]
+    H -->|Groq API| D
+    D -->|Strategic Analysis| H
+    H -->|Report| E
+    E -->|New Issue| A
+```
+
+**Key Components:**
+- **Kestra**: Workflow orchestration, scheduling, AI Agent hosting
+- **Kestra AI Agent**: Core intelligence engine with decision-making
+- **Groq**: Fast inference provider (OpenAI-compatible)
+- **Llama Models**: `openai/gpt-oss-120b` (classification), `llama-3.3-70b-versatile` (strategy)
+- **GitHub API**: Data source and action destination
+
+---
+
 ## 🎯 Impact Metrics
 
 ### Time Savings
@@ -180,8 +320,8 @@ RepoRanger uses a **multi-workflow orchestration** pattern with two main flows:
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| **Orchestration** | [Kestra](https://kestra.io) | Workflow automation, scheduling, task coordination |
-| **AI/LLM** | [Groq](https://groq.com) | Fast inference with Llama 3.3 70B model |
+| **Orchestration** | [Kestra](https://kestra.io) | Built-in AI Agent, Workflow automation, scheduling, task coordination |
+| **AI/LLM** | [Groq](https://groq.com) |  openai/gpt-oss-120b model for structured classification, and Llama 3.3 70B model for strategic analysis |
 | **Frontend** | [Vercel](https://vercel.com) + Next.js | Production dashboard deployment |
 | **Integration** | GitHub API | Repository data access and updates |
 | **Code Quality** | [CodeRabbit](https://coderabbit.ai) | Automated code reviews |
@@ -312,13 +452,13 @@ Built for **AI Agents Assemble Hackathon**
 
 ### Sponsor Technologies Used
 
-✅ **Kestra** - Core workflow orchestration engine    
+✅ **Kestra** - Core workflow orchestration engine & built-in AI Agent features   
 ✅ **Vercel** - Production-ready dashboard deployment  
 ✅ **CodeRabbit** - Automated code quality reviews
 
 #### Additional Technology Used
 
-✅ **Groq** - Lightning-fast AI inference (Llama 3.3 70B)
+✅ **Groq** - Lightning-fast AI inference (openai/gpt-oss-120b & Llama 3.3 70B)
 
 ---
 
@@ -359,11 +499,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **[Kestra](https://kestra.io)** - Powerful workflow orchestration
+- **[Kestra](https://kestra.io)** - Powerful workflow orchestration & built-in AI Agent features
 - **[Groq](https://groq.com)** - Blazing-fast AI inference
 - **[Vercel](https://vercel.com)** - Seamless deployment platform
 - **[CodeRabbit](https://coderabbit.ai)** - Intelligent code reviews
-- **Llama 3.3 70B** - State-of-the-art language model
+- **openai/gpt-oss-120b** - Intelligent structured classification language model
+- **Llama 3.3 70B** - Intelligent strategic analysis language model
 
 ---
 
